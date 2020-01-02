@@ -59,13 +59,13 @@ void start_server()
 
 	printf("Connection accepted\n");
 
+	// get client http request
 	char client_message[2048];
 	recv(new_socket, client_message, 2048, 0);
-
 	printf("Message from client:\n%s", client_message);
 
-	//Reply to client
-	const char* message = "Hello from the server\n";
+	//send server http response
+	const char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
 	send(new_socket, message, strlen(message), 0);
 
 	closesocket(s);
