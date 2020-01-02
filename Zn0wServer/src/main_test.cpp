@@ -1,10 +1,9 @@
-#include <stdio.h>
+#include "core/connection.h"
 
 
 int main()
 {
-	printf("Hello World!");
-
+	create_socket();
 	getchar();
 	
 	return 0;
