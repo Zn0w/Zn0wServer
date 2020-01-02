@@ -3,7 +3,7 @@
 
 int main()
 {
-	create_socket();
+	start_server();
 	getchar();
 	
 	return 0;
