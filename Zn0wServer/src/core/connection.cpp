@@ -65,7 +65,7 @@ void start_server()
 	printf("Message from client:\n%s", client_message);
 
 	//send server http response
-	const char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+	const char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 26\n\nHello from the Zn0wServer!";
 	send(new_socket, message, strlen(message), 0);
 
 	closesocket(s);
