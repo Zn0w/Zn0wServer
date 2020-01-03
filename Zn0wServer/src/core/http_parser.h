@@ -11,9 +11,9 @@ struct HeaderItem
 
 struct HTTP_Request
 {
-	const char* method;
-	const char* url;
-	const char* protocol;
+	char method[256] = "";
+	char url[256] = "";
+	char protocol[256] = "";
 
 	HeaderItem* header_items;
 };

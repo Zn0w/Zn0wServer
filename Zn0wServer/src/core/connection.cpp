@@ -61,8 +61,12 @@ void start_server()
 
 	// get client http request
 	char client_message[2048];
+	memset(client_message, '\0', 2048);
 	recv(new_socket, client_message, 2048, 0);
 	printf("Message from client:\n%s", client_message);
+
+	HTTP_Request http_request;
+	parse_http_request(&http_request, client_message, 2048);
 
 	//send server http response
 	const char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 26\n\nHello from the Zn0wServer!";
