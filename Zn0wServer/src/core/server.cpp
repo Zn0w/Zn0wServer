@@ -1,4 +1,4 @@
-#include "connection.h"
+#include "server.h"
 
 
 void start_server()
@@ -69,13 +69,34 @@ void start_server()
 	parse_http_request(&http_request, client_message, 2048);
 
 	//send server http response
-	//char http_response_string[2048] = "";
 	char http_response_string[2048];
 	memset(http_response_string, '\0', 2048);
-	HeaderItem header_items[] = { { "Content-Type", "text/plain" }, { "Content-Length", "26" } };
-	//const char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 26\n\nHello from the Zn0wServer!";
-	parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, "Hello from the Zn0wServer!");
-	send(new_socket, http_response_string, strlen(http_response_string), 0);
+
+	char* resource = 0;
+	unsigned int file_size;
+	if ((file_size = read_file(http_request.url, &resource)))
+	{
+		HeaderItem content_length;
+		memcpy((void*)content_length.attribute, "Content-Length", 15);
+		sprintf(content_length.value, "%d", file_size);
+
+		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" },content_length };
+
+		parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
+		send(new_socket, http_response_string, strlen(http_response_string), 0);
+	}
+	else
+	{
+		file_size = read_file("test/error_404.html", &resource);
+		HeaderItem content_length;
+		memcpy((void*)content_length.attribute, "Content-Length", 15);
+		sprintf(content_length.value, "%d", file_size);
+
+		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" }, content_length };
+
+		parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
+		send(new_socket, http_response_string, strlen(http_response_string), 0);
+	}
 
 	printf("Message sent to the client:\n%s", http_response_string);
 

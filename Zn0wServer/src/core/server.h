@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "http_parser.h"
+#include "../utils/file_io.h"
 
 
 static const char* IP_ADDRESS = "127.0.0.1";
