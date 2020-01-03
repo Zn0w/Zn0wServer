@@ -1,12 +1,13 @@
 #pragma once
 
 #include <string.h>
+#include <vector>
 
 
 struct HeaderItem
 {
-	const char* attribute;
-	const char* value;
+	char attribute[256] = "";
+	char value[256] = "";
 };
 
 struct HTTP_Request
@@ -15,7 +16,8 @@ struct HTTP_Request
 	char url[256] = "";
 	char protocol[256] = "";
 
-	HeaderItem* header_items;
+	//HeaderItem* header_items;
+	std::vector<HeaderItem> header_items;
 };
 
 struct HTTP_Response
