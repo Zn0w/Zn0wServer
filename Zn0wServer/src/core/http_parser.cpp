@@ -69,4 +69,32 @@ void parse_http_request(HTTP_Request* http_request, char* message, unsigned int 
 		
 		j = start_cursor;
 	}
+
+	// TODO: parse body
+}
+
+void parse_http_response(
+	char* http_response_string, const char* protocol,
+	const char* status_code, const char* status_message,
+	HeaderItem* header_items, unsigned int header_length,
+	const char* body
+)
+{
+	strcat(http_response_string, protocol);
+	strcat(http_response_string, " ");
+	strcat(http_response_string, status_code);
+	strcat(http_response_string, " ");
+	strcat(http_response_string, status_message);
+	strcat(http_response_string, "\n");
+	
+	for (int i = 0; i < header_length; i++)
+	{
+		strcat(http_response_string, header_items[i].attribute);
+		strcat(http_response_string, ": ");
+		strcat(http_response_string, header_items[i].value);
+		strcat(http_response_string, "\n");
+	}
+	
+	strcat(http_response_string, "\n");
+	strcat(http_response_string, body);
 }

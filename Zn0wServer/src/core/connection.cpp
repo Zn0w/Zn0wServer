@@ -69,8 +69,15 @@ void start_server()
 	parse_http_request(&http_request, client_message, 2048);
 
 	//send server http response
-	const char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 26\n\nHello from the Zn0wServer!";
-	send(new_socket, message, strlen(message), 0);
+	//char http_response_string[2048] = "";
+	char http_response_string[2048];
+	memset(http_response_string, '\0', 2048);
+	HeaderItem header_items[] = { { "Content-Type", "text/plain" }, { "Content-Length", "26" } };
+	//const char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 26\n\nHello from the Zn0wServer!";
+	parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, "Hello from the Zn0wServer!");
+	send(new_socket, http_response_string, strlen(http_response_string), 0);
+
+	printf("Message sent to the client:\n%s", http_response_string);
 
 	closesocket(s);
 	WSACleanup();
