@@ -1,6 +1,56 @@
 #include "server.h"
 
 
+static void handle_client(SOCKET client_socket)
+{
+	// get client http request
+	char client_message[2048];
+	memset(client_message, '\0', 2048);
+	recv(client_socket, client_message, 2048, 0);
+	printf("Message from client:\n%s", client_message);
+
+	HTTP_Request http_request;
+	parse_http_request(&http_request, client_message, 2048);
+
+	//send server http response
+	char http_response_string[2048];
+	memset(http_response_string, '\0', 2048);
+
+	char* resource = 0;
+	unsigned int file_size;
+	if ((file_size = read_file(http_request.url, &resource)))
+	{
+		HeaderItem content_length;
+		memcpy((void*)content_length.attribute, "Content-Length", 15);
+		sprintf(content_length.value, "%d", file_size);
+
+		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" },content_length };
+
+		parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
+		send(client_socket, http_response_string, strlen(http_response_string), 0);
+	}
+	else if (strcmp(http_request.url, "/favicon.ico") == 0)
+	{
+		// handle the icon loading
+	}
+	else
+	{
+		file_size = read_file("test/error_404.html", &resource);
+		HeaderItem content_length;
+		memcpy((void*)content_length.attribute, "Content-Length", 15);
+		sprintf(content_length.value, "%d", file_size);
+
+		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" }, content_length };
+
+		parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
+		send(client_socket, http_response_string, strlen(http_response_string), 0);
+	}
+
+	printf("Message sent to the client:\n%s", http_response_string);
+
+	closesocket(client_socket);
+}
+
 void start_server()
 {
 
@@ -43,62 +93,31 @@ void start_server()
 	//Listen to incoming connections
 	listen(s, MAX_CONN);
 
+	running = true;
+
 	printf("Waiting for incoming connections...\n");
 	
-	//Accept an incoming connection
+	//Accept incoming connections
 
-	sockaddr_in client_socket;
-	SOCKET new_socket;
-	int c = sizeof(sockaddr_in);
-	new_socket = accept(s, (sockaddr*)&client_socket, &c);
-	if (new_socket == INVALID_SOCKET)
+	while (running)
 	{
-		printf("Accept failed with error code : %d", WSAGetLastError());
-		return;
+		sockaddr_in client_socket;
+		SOCKET new_socket;
+		int c = sizeof(sockaddr_in);
+		new_socket = accept(s, (sockaddr*)&client_socket, &c);
+		if (new_socket == INVALID_SOCKET)
+		{
+			printf("Accept failed with error code : %d", WSAGetLastError());
+			return;
+		}
+
+		printf("Connection accepted\n");
+
+		std::thread new_client_thread(handle_client, new_socket);
+		new_client_thread.join();	// to be removed
 	}
 
-	printf("Connection accepted\n");
-
-	// get client http request
-	char client_message[2048];
-	memset(client_message, '\0', 2048);
-	recv(new_socket, client_message, 2048, 0);
-	printf("Message from client:\n%s", client_message);
-
-	HTTP_Request http_request;
-	parse_http_request(&http_request, client_message, 2048);
-
-	//send server http response
-	char http_response_string[2048];
-	memset(http_response_string, '\0', 2048);
-
-	char* resource = 0;
-	unsigned int file_size;
-	if ((file_size = read_file(http_request.url, &resource)))
-	{
-		HeaderItem content_length;
-		memcpy((void*)content_length.attribute, "Content-Length", 15);
-		sprintf(content_length.value, "%d", file_size);
-
-		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" },content_length };
-
-		parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
-		send(new_socket, http_response_string, strlen(http_response_string), 0);
-	}
-	else
-	{
-		file_size = read_file("test/error_404.html", &resource);
-		HeaderItem content_length;
-		memcpy((void*)content_length.attribute, "Content-Length", 15);
-		sprintf(content_length.value, "%d", file_size);
-
-		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" }, content_length };
-
-		parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
-		send(new_socket, http_response_string, strlen(http_response_string), 0);
-	}
-
-	printf("Message sent to the client:\n%s", http_response_string);
+	// make shur all the clinet are done
 
 	closesocket(s);
 	WSACleanup();
