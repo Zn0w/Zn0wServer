@@ -13,12 +13,27 @@ static void handle_client(SOCKET client_socket)
 	parse_http_request(&http_request, client_message, 2048);
 
 	//send server http response
-	char http_response_string[2048];
-	memset(http_response_string, '\0', 2048);
+	char http_response_string[16384];
+	memset(http_response_string, '\0', 16384);
 
 	char* resource = 0;
 	unsigned int file_size;
-	if ((file_size = read_file(http_request.url, &resource)))
+	if (strcmp(http_request.url, "/favicon.ico") == 0)
+	{
+		// handle the icon loading
+		//file_size = read_file(http_request.url, &resource);
+		file_size = read_image_file(http_request.url, &resource);
+
+		HeaderItem content_length;
+		memcpy((void*)content_length.attribute, "Content-Length", 15);
+		sprintf(content_length.value, "%d", file_size);
+
+		HeaderItem header_items[] = { { "Content-Type", "image/x-icon" },content_length };
+
+		parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
+		send(client_socket, http_response_string, strlen(http_response_string), 0);
+	}
+	else if ((file_size = read_file(http_request.url, &resource)))
 	{
 		HeaderItem content_length;
 		memcpy((void*)content_length.attribute, "Content-Length", 15);
@@ -28,10 +43,6 @@ static void handle_client(SOCKET client_socket)
 
 		parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
 		send(client_socket, http_response_string, strlen(http_response_string), 0);
-	}
-	else if (strcmp(http_request.url, "/favicon.ico") == 0)
-	{
-		// handle the icon loading
 	}
 	else
 	{
