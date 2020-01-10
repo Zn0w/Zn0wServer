@@ -3,61 +3,76 @@
 
 static void handle_client(SOCKET client_socket)
 {
-	// get client http request
-	char client_message[2048];
-	memset(client_message, '\0', 2048);
-	recv(client_socket, client_message, 2048, 0);
-	printf("Message from client:\n%s", client_message);
-
-	HTTP_Request http_request;
-	parse_http_request(&http_request, client_message, 2048);
-
-	//send server http response
-	char http_response_string[16384];
-	memset(http_response_string, '\0', 16384);
-
-	char* resource = 0;
-	unsigned int file_size;
-	if (strcmp(http_request.url, "/favicon.ico") == 0)
+	while (true)
 	{
-		// handle the icon loading
-		//file_size = read_file(http_request.url, &resource);
-		file_size = read_image_file(http_request.url, &resource);
+		// get client http request
+		char client_message[2048];
+		memset(client_message, '\0', 2048);
 
-		HeaderItem content_length;
-		memcpy((void*)content_length.attribute, "Content-Length", 15);
-		sprintf(content_length.value, "%d", file_size);
+		int recv_result = recv(client_socket, client_message, 2048, 0);
+		if (recv_result == 0)
+		{
+			printf("Connection has been closed\n");
+			return;
+		}
+		else if (recv_result == SOCKET_ERROR)
+		{
+			printf("Socket error: %d\n", WSAGetLastError());
+			return;
+		}
 
-		HeaderItem header_items[] = { { "Content-Type", "image/x-icon" },content_length };
+		printf("Message from client:\n%s", client_message);
 
-		parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
-		send(client_socket, http_response_string, strlen(http_response_string), 0);
+		HTTP_Request http_request;
+		parse_http_request(&http_request, client_message, 2048);
+
+		//send server http response
+		char http_response_string[16384];
+		memset(http_response_string, '\0', 16384);
+
+		char* resource = 0;
+		unsigned int file_size;
+		if (strcmp(http_request.url, "/favicon.ico") == 0)
+		{
+			// handle the icon loading
+			//file_size = read_file(http_request.url, &resource);
+			file_size = read_image_file(http_request.url, &resource);
+
+			HeaderItem content_length;
+			memcpy((void*)content_length.attribute, "Content-Length", 15);
+			sprintf(content_length.value, "%d", file_size);
+
+			HeaderItem header_items[] = { { "Content-Type", "image/x-icon" },content_length };
+
+			parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
+			send(client_socket, http_response_string, strlen(http_response_string), 0);
+		}
+		else if ((file_size = read_file(http_request.url, &resource)))
+		{
+			HeaderItem content_length;
+			memcpy((void*)content_length.attribute, "Content-Length", 15);
+			sprintf(content_length.value, "%d", file_size);
+
+			HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" },content_length };
+
+			parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
+			send(client_socket, http_response_string, strlen(http_response_string), 0);
+		}
+		else
+		{
+			file_size = read_file("test/error_404.html", &resource);
+			HeaderItem content_length;
+			memcpy((void*)content_length.attribute, "Content-Length", 15);
+			sprintf(content_length.value, "%d", file_size);
+
+			HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" }, content_length };
+
+			parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
+			send(client_socket, http_response_string, strlen(http_response_string), 0);
+		}
+
+		printf("Message sent to the client:\n%s", http_response_string);
 	}
-	else if ((file_size = read_file(http_request.url, &resource)))
-	{
-		HeaderItem content_length;
-		memcpy((void*)content_length.attribute, "Content-Length", 15);
-		sprintf(content_length.value, "%d", file_size);
-
-		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" },content_length };
-
-		parse_http_response(http_response_string, "HTTP/1.1", "200", "OK", header_items, 2, resource);
-		send(client_socket, http_response_string, strlen(http_response_string), 0);
-	}
-	else
-	{
-		file_size = read_file("test/error_404.html", &resource);
-		HeaderItem content_length;
-		memcpy((void*)content_length.attribute, "Content-Length", 15);
-		sprintf(content_length.value, "%d", file_size);
-
-		HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" }, content_length };
-
-		parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
-		send(client_socket, http_response_string, strlen(http_response_string), 0);
-	}
-
-	printf("Message sent to the client:\n%s", http_response_string);
 
 	closesocket(client_socket);
 }
