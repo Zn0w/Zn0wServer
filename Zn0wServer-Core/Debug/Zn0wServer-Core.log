@@ -1,0 +1,9 @@
+﻿  http_parser.cpp
+d:\work\projects\zn0wserver\zn0wserver-core\src\http_parser.cpp(13): warning C4018: '<': signed/unsigned mismatch
+d:\work\projects\zn0wserver\zn0wserver-core\src\http_parser.cpp(24): warning C4018: '<': signed/unsigned mismatch
+d:\work\projects\zn0wserver\zn0wserver-core\src\http_parser.cpp(35): warning C4018: '<': signed/unsigned mismatch
+d:\work\projects\zn0wserver\zn0wserver-core\src\http_parser.cpp(47): warning C4018: '<': signed/unsigned mismatch
+d:\work\projects\zn0wserver\zn0wserver-core\src\http_parser.cpp(90): warning C4018: '<': signed/unsigned mismatch
+  file_io.cpp
+  Generating Code...
+  Zn0wServer-Core.vcxproj -> D:\work\projects\Zn0wServer\Debug\Zn0wServer-Core.lib

@@ -72,15 +72,15 @@ static void handle_client(SOCKET client_socket)
 		}
 		else
 		{
-			file_size = read_file("test/error_404.html", &resource);
+			file_size = read_file("errors/error_404.html", &resource);
 			if (file_size == 0)
 			{
 				// If site-defined error pages don't exist
 
-				HeaderItem header_items[] = { { "Content-Type", "text/plaint;charset=UTF-8" }, { "Content-Length", 25 } };
+				HeaderItem header_items[] = { { "Content-Type", "text/plaint;charset=UTF-8" }, { "Content-Length", "25" } };
 
-				parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
-				send(client_socket, "This page does not exist", 25, 0);
+				parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, "This page does not exist");
+				send(client_socket, http_response_string, strlen(http_response_string), 0);
 			}
 			else
 			{
