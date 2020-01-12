@@ -16,20 +16,8 @@ struct HTTP_Request
 	char url[256] = "";
 	char protocol[256] = "";
 
-	//HeaderItem* header_items;
 	std::vector<HeaderItem> header_items;
 };
-
-/*struct HTTP_Response
-{
-	char protocol[256] = "";
-	char status_code[256] = "";
-	char status_message[256] = "";
-
-	std::vector<HeaderItem> header_items;
-
-	char body[1024] = "";
-};*/
 
 
 void parse_http_request(HTTP_Request* http_request, char* message, unsigned int length);

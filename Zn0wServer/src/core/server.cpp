@@ -1,15 +1,20 @@
 #include "server.h"
 
 
+#define HTTP_REQUEST_MAX_LENGTH 4096
+#define HTTP_RESPONSE_MAX_LENGTH 16384
+
+
 static void handle_client(SOCKET client_socket)
 {
 	while (true)
 	{
 		// get client http request
-		char client_message[2048];
-		memset(client_message, '\0', 2048);
 
-		int recv_result = recv(client_socket, client_message, 2048, 0);
+		char client_message[HTTP_REQUEST_MAX_LENGTH];
+		memset(client_message, '\0', HTTP_REQUEST_MAX_LENGTH);
+
+		int recv_result = recv(client_socket, client_message, HTTP_REQUEST_MAX_LENGTH, 0);
 		if (recv_result == 0)
 		{
 			printf("Connection has been closed\n");
@@ -24,11 +29,18 @@ static void handle_client(SOCKET client_socket)
 		printf("Message from client:\n%s", client_message);
 
 		HTTP_Request http_request;
-		parse_http_request(&http_request, client_message, 2048);
+		parse_http_request(&http_request, client_message, HTTP_REQUEST_MAX_LENGTH);
+
 
 		//send server http response
-		char http_response_string[16384];
-		memset(http_response_string, '\0', 16384);
+
+		char http_response_string[HTTP_RESPONSE_MAX_LENGTH];
+		memset(http_response_string, '\0', HTTP_RESPONSE_MAX_LENGTH);
+
+		if (strcmp(http_request.url, "/") == 0)
+		{
+			memcpy((void*)http_request.url, "index.html", 11);
+		}
 
 		char* resource = 0;
 		unsigned int file_size;
@@ -61,14 +73,26 @@ static void handle_client(SOCKET client_socket)
 		else
 		{
 			file_size = read_file("test/error_404.html", &resource);
-			HeaderItem content_length;
-			memcpy((void*)content_length.attribute, "Content-Length", 15);
-			sprintf(content_length.value, "%d", file_size);
+			if (file_size == 0)
+			{
+				// If site-defined error pages don't exist
 
-			HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" }, content_length };
+				HeaderItem header_items[] = { { "Content-Type", "text/plaint;charset=UTF-8" }, { "Content-Length", 25 } };
 
-			parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
-			send(client_socket, http_response_string, strlen(http_response_string), 0);
+				parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
+				send(client_socket, "This page does not exist", 25, 0);
+			}
+			else
+			{
+				HeaderItem content_length;
+				memcpy((void*)content_length.attribute, "Content-Length", 15);
+				sprintf(content_length.value, "%d", file_size);
+
+				HeaderItem header_items[] = { { "Content-Type", "text/html;charset=UTF-8" }, content_length };
+
+				parse_http_response(http_response_string, "HTTP/1.1", "404", "Not Found", header_items, 2, resource);
+				send(client_socket, http_response_string, strlen(http_response_string), 0);
+			}
 		}
 
 		printf("Message sent to the client:\n%s", http_response_string);
@@ -79,51 +103,50 @@ static void handle_client(SOCKET client_socket)
 
 void start_server()
 {
+	// Init Winsock2 library
 
 	printf("\nInitializing Winsock...");
-
 	WSADATA wsa_data;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
 	{
 		printf("  Fail, Error Code : %d\n", WSAGetLastError());
 		return;
 	}
-
 	printf("  Success\n");
 
-	// Create a socket
+	// Set up a tcp server
+
+	// Create a socket that is bound to a specific transport service provider
 	SOCKET s;
 	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 	{
 		printf("Could not create socket : %d\n", WSAGetLastError());
 		return;
 	}
-
 	printf("Socket created\n");
 
 
+	//Bind (associate a local address with a socket)
 	sockaddr_in server_socket;
 	server_socket.sin_addr.s_addr = inet_addr(IP_ADDRESS);
 	server_socket.sin_family = AF_INET;
 	server_socket.sin_port = htons(PORT);
 
-	//Bind
 	if (bind(s, (sockaddr*)&server_socket, sizeof(server_socket)) == SOCKET_ERROR)
 	{
 		printf("Bind failed with error code : %d\n", WSAGetLastError());
 		return;
 	}
-
 	printf("Bind done\n");
 
-	//Listen to incoming connections
+	// Start listening to incoming connections
+	
 	listen(s, MAX_CONN);
-
 	running = true;
 
 	printf("Waiting for incoming connections...\n");
 	
-	//Accept incoming connections
+	// Accept incoming connections
 
 	while (running)
 	{
@@ -136,14 +159,13 @@ void start_server()
 			printf("Accept failed with error code : %d", WSAGetLastError());
 			return;
 		}
-
 		printf("Connection accepted\n");
 
 		std::thread new_client_thread(handle_client, new_socket);
 		new_client_thread.join();	// to be removed
 	}
 
-	// make shur all the clinet are done
+	// TODO : make sure all the clients are done
 
 	closesocket(s);
 	WSACleanup();
